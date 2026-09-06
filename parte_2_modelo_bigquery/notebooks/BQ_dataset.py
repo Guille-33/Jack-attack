@@ -1,6 +1,7 @@
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from google.cloud.bigquery.table import (ForeignKey,TableConstraints,TableReference,ColumnReference, PrimaryKey)
+import pandas as  pd
 from config import (CREDENTIALS_PATH,PROJECT_ID,DATASET_ID)
 
 # Cliente autenticado
@@ -48,3 +49,14 @@ def build_BQ_table(*,name:str,fields:dict,constraints:dict,client:bigquery.Clien
     table.table_constraints=TableConstraints(primary_key=PrimaryKey(columns=primary),foreign_keys=foreign_keys if foreign_keys else None)
     client.create_table(table=table,exists_ok=True)
     print(f"Tabla {name} procesada correctamente en BigQuery.")
+
+def upload_table(*,name:str,df:pd.DataFrame,client:bigquery.Client)->None:
+    job_config=bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        autodetect=True
+    )
+    table_ref=f"{PROJECT_ID}.{DATASET_ID}.{name}"
+    job=client.load_table_from_dataframe(df,table_ref,job_config=job_config)
+    job.result()
+
+    print(f"{len(df)} filas cargadas")
